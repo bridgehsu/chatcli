@@ -1,0 +1,20 @@
+[package]
+name = "chatcli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "chatcli"
+path = "src/main.rs"
+
+[dependencies]
+teloxide = { version = "0.13", features = ["macros"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
+anyhow = "1"
+serde_json = "1"
+dirs = "6.0.0"

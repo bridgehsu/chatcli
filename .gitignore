@@ -1,0 +1,6 @@
+target/
+logs/
+# Never commit real tokens
+config.local.yaml
+config.yaml
+.env

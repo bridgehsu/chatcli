@@ -1,0 +1,13 @@
+telegram:
+  # Prefer setting TELEGRAM_BOT_TOKEN in the environment.
+  token: "replace-with-your-bot-token"
+  allowed_user_ids:
+    - 123456789
+
+workspace:
+  # Absolute path to the projects that the CLI agents should operate in.
+  path: /Users/you/workspace
+
+log:
+  dir: logs
+  level: info
