@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.chatcli</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <!-- Update this path after `cargo build --release` -->
+    <string>/Users/xukui/demo-workspace/chatcli/target/release/chatcli</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <!-- chatcli reads config.yaml from its working directory -->
+  <string>/Users/xukui/demo-workspace/chatcli</string>
+
+  <key>StandardOutPath</key>
+  <string>/Users/xukui/demo-workspace/chatcli/logs/launchd.out.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/xukui/demo-workspace/chatcli/logs/launchd.err.log</string>
+</dict>
+</plist>

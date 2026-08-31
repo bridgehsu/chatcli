@@ -5,7 +5,6 @@ use std::path::Path;
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
     pub telegram: TelegramConfig,
-    pub workspace: WorkspaceConfig,
     pub log: LogConfig,
 }
 
@@ -13,11 +12,6 @@ pub struct Config {
 pub struct TelegramConfig {
     pub token: String,
     pub allowed_user_ids: Vec<i64>,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct WorkspaceConfig {
-    pub path: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -54,9 +48,6 @@ impl Config {
         }
         if self.telegram.allowed_user_ids.is_empty() {
             anyhow::bail!("allowed_user_ids must not be empty.");
-        }
-        if self.workspace.path.is_empty() {
-            anyhow::bail!("workspace.path must not be empty.");
         }
         Ok(())
     }

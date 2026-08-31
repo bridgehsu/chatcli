@@ -3,6 +3,7 @@ mod cli;
 mod config;
 mod instance;
 mod telegram;
+mod terminal;
 
 use std::sync::Arc;
 
@@ -25,7 +26,7 @@ async fn main() -> Result<()> {
     // Set up logging
     init_logging(&config)?;
 
-    info!(workspace = %config.workspace.path, "ChatCLI starting");
+    info!("ChatCLI starting from the current user's home directory");
 
     // Start Telegram bot (blocks until shutdown)
     start_bot(Arc::clone(&config)).await;

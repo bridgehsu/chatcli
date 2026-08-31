@@ -5,7 +5,6 @@ use std::str::FromStr;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AgentKind {
     Cursor,
-    Claude,
     Codex,
 }
 
@@ -13,7 +12,6 @@ impl AgentKind {
     pub fn as_str(self) -> &'static str {
         match self {
             AgentKind::Cursor => "cursor",
-            AgentKind::Claude => "claude",
             AgentKind::Codex => "codex",
         }
     }
@@ -21,7 +19,6 @@ impl AgentKind {
     pub fn display_name(self) -> &'static str {
         match self {
             AgentKind::Cursor => "Cursor",
-            AgentKind::Claude => "Claude",
             AgentKind::Codex => "Codex",
         }
     }
@@ -39,7 +36,6 @@ impl FromStr for AgentKind {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.trim().to_lowercase().as_str() {
             "cursor" => Ok(AgentKind::Cursor),
-            "claude" => Ok(AgentKind::Claude),
             "codex" => Ok(AgentKind::Codex),
             _ => Err(()),
         }

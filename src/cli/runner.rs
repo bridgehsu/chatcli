@@ -11,15 +11,13 @@ const WINDOW: &str = "agent";
 /// One real, persistent interactive terminal. The terminal belongs to one chat.
 #[derive(Clone)]
 pub struct CliRunner {
-    pub kind: AgentKind,
     pub workspace: PathBuf,
     pub tmux_session: String,
 }
 
 impl CliRunner {
-    pub fn new(kind: AgentKind, workspace: impl Into<PathBuf>, tmux_session: String) -> Self {
+    pub fn new(workspace: impl Into<PathBuf>, tmux_session: String) -> Self {
         Self {
-            kind,
             workspace: workspace.into(),
             tmux_session,
         }
@@ -29,16 +27,23 @@ impl CliRunner {
         format!("{}:{}", self.tmux_session, WINDOW)
     }
 
-    pub async fn start_agent(&self) -> Result<()> {
+    /// Creates a fresh tmux window backed by the user's default shell.
+    /// This is an implementation detail: ChatCLI exposes only supported CLI modes.
+    async fn prepare_terminal(&self) -> Result<()> {
         self.ensure_tmux_session().await?;
         self.prepare_window().await?;
-        let command = match self.kind {
+        Ok(())
+    }
+
+    /// Start an AI CLI inside the existing real terminal session.
+    pub async fn start_agent(&self, kind: AgentKind) -> Result<()> {
+        self.prepare_terminal().await?;
+        let command = match kind {
             AgentKind::Codex => "exec codex",
             AgentKind::Cursor => "exec cursor agent",
-            AgentKind::Claude => "exec claude",
         };
         self.send_line(command).await?;
-        info!(session = %self.tmux_session, agent = %self.kind, "Started interactive CLI");
+        info!(session = %self.tmux_session, agent = %kind, "Started interactive CLI");
         Ok(())
     }
 
