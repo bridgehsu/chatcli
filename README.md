@@ -12,7 +12,21 @@ tmux
 Codex / Cursor
 ```
 
-一期仅支持 macOS、Telegram、Codex CLI、Cursor CLI 和每个聊天一个活动终端。启动 CLI 时先选择工作目录；该目录不要求是 Git 仓库。
+消息会先经过 `Agent`：确定性命令与会话状态（有活动终端、等待工作目录）优先按规则处理；无活动终端时的自然语言，可在启用 `router` 后由 OpenAI 兼容模型做意图分类（如启动 CLI 引导 vs 文件定位）。模型失败时回退到关键词启发式。`Agent` 不直接执行 shell 命令，也不会编造目录或文件位置；所有终端和文件系统操作仍须由对应本地模块验证后执行。
+
+## Agent 与 Tool 分层
+
+`Agent` 只产生受限决策；真实本机能力集中在 `src/tools/`：
+
+```text
+Agent
+  ├─ WorkspaceSearchTool：查找目录、校验路径、定位文件
+  └─ TerminalTool：启动 CLI、输入、抓屏、按键注入、本机接管
+```
+
+例如用户在选择 Codex 后发送“打开 chatcli 这个目录”，`WorkspaceSearchTool` 会在本机 Home 范围内搜索同名目录：唯一结果直接用于创建 tmux；多个结果返回编号候选，用户回复序号后再启动；没有结果则提示用户重新输入路径或目录名。目录与文件结果均来自真实文件系统，不由模型编造。
+
+一期仅支持 macOS、Telegram、Codex CLI 和 Cursor CLI。每个聊天可保留多个 tmux 会话，但任意时刻只有一个“当前会话”；启动 CLI 时先选择工作目录，该目录不要求是 Git 仓库。
 
 ## 运行前提
 
@@ -37,7 +51,16 @@ telegram:
   token: "你的 Telegram Bot Token"
   allowed_user_ids:
     - 你的 Telegram 用户 ID
+
+router:
+  enabled: true
+  base_url: "https://api.openai.com/v1"
+  api_key: ""   # 或设置环境变量 ROUTER_API_KEY
+  model: "gpt-4o-mini"
+  timeout_secs: 15
 ```
+
+`router` 默认关闭。启用后需提供 API Key（`router.api_key` 或 `ROUTER_API_KEY`）；`base_url` 可为任意 OpenAI Chat Completions 兼容端点。
 
 ## 打包流程
 
@@ -120,19 +143,23 @@ logs/launchd.err.log
 ## Telegram 使用方式
 
 ```text
-/open
-→ 选择 Codex 或 Cursor
-→ 选择 Home (~) 或发送工作目录
-→ ChatCLI 在该目录创建 tmux 并启动 CLI
+[Codex] [Cursor]
+→ 进入对应 CLI 的会话中心
+→ 选择“新建会话”并发送工作目录
+→ ChatCLI 在该目录创建独立 tmux 并启动 CLI
+→ 新会话自动成为当前会话
 ```
 
-常用命令：
+Codex 与 Cursor 分别提供“新建会话”和“所有会话”入口；列表只显示同类 CLI 会话。选择列表中的运行中会话会切换当前会话，旧会话继续在后台运行。普通 Telegram 文本始终输入当前会话。
+
+常用操作：
 
 ```text
 /screen  查看当前终端画面
 /attach  在本机 Mac Terminal 接入同一 tmux 会话
 /stop    发送 Ctrl+C
-/close   关闭当前 tmux 会话
+/close   结束当前会话
+/debug_reset  仅重置机器人 UI；不会关闭后台会话
 ```
 
-有活动终端时，普通 Telegram 文本会直接输入当前 Codex 或 Cursor；无活动终端时，ChatCLI 会提示选择要启动的 CLI。
+会话元数据保存到 `~/.chatcli/sessions.json`。ChatCLI 重启时会检查 tmux 是否仍存在，恢复可用会话；已不存在的 tmux 会话会显示为已失效。

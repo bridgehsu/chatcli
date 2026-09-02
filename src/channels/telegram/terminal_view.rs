@@ -14,7 +14,7 @@ use teloxide::{
 };
 use tokio::{sync::oneshot, task::JoinHandle};
 
-use crate::cli::CliRunner;
+use crate::infrastructure::CliRunner;
 
 use super::presenter;
 

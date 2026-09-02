@@ -26,8 +26,10 @@ impl InstanceGuard {
                     if pid != std::process::id() && is_process_alive(pid) {
                         bail!(
                             "已有 chatcli 在运行 (PID {})。\n\
-                             请先执行 VS Code 任务「停止 chatcli」，或运行：\n\
-                             pkill -f 'target/debug/chatcli'",
+                             如需运行 cargo run，请先停止已安装服务：\n\
+                             ./bin/cmd.sh stop\n\
+                             如需使用已安装服务，请查看日志：\n\
+                             ./bin/cmd.sh logs",
                             pid
                         );
                     }

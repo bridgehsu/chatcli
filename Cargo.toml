@@ -10,7 +10,7 @@ path = "src/main.rs"
 [dependencies]
 teloxide = { version = "0.13", features = ["macros"] }
 tokio = { version = "1", features = ["full"] }
-serde = { version = "1", features = ["derive"] }
+serde = { version = "1", features = ["derive", "rc"] }
 serde_yaml = "0.9"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
@@ -18,3 +18,5 @@ tracing-appender = "0.2"
 anyhow = "1"
 serde_json = "1"
 dirs = "6.0.0"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+strum = { version = "0.26", features = ["derive"] }

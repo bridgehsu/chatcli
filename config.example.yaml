@@ -7,3 +7,16 @@ telegram:
 log:
   dir: logs
   level: info
+
+# OpenAI-compatible model used only for ambiguous session intent routing.
+# Deterministic commands and active-terminal forwarding never go through the model.
+# Prefer setting ROUTER_API_KEY in the environment.
+# DeepSeek example:
+#   base_url: "https://api.deepseek.com/v1"
+#   model: "deepseek-v4-flash"
+router:
+  enabled: false
+  base_url: "https://api.deepseek.com/v1"
+  api_key: ""
+  model: "deepseek-v4-flash"
+  timeout_secs: 15

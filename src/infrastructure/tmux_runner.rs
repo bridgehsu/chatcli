@@ -72,6 +72,16 @@ impl CliRunner {
         Ok(())
     }
 
+    pub async fn exists(&self) -> bool {
+        Command::new("tmux")
+            .args(["has-session", "-t", &self.tmux_session])
+            .stderr(Stdio::null())
+            .status()
+            .await
+            .map(|status| status.success())
+            .unwrap_or(false)
+    }
+
     async fn prepare_window(&self) -> Result<()> {
         let windows = Command::new("tmux")
             .args([
