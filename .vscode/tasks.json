@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "启动 chatcli",
+      "type": "shell",
+      "command": "cargo run",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "停止 chatcli",
+      "type": "shell",
+      "command": "pkill -f 'target/debug/chatcli|target/release/chatcli' 2>/dev/null; rm -f ~/.chatcli/chatcli.pid; echo '已停止'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}
