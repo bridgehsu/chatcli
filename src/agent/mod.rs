@@ -1,14 +1,10 @@
-/// CLI kinds supported by the interactive terminal bridge.
-pub(crate) mod actions;
-pub mod agent;
-mod filesystem;
+pub(crate) mod context;
 pub mod intent;
-pub mod kind;
+pub(crate) mod planner;
+pub(crate) mod policy;
 mod resolver;
-mod terminal;
 
-pub use agent::Agent;
-pub(crate) use filesystem::{SearchResult, WorkspaceSearchTool};
-pub use kind::AgentKind;
+pub use crate::domain::{AgentKind, TerminalKind};
+pub(crate) use crate::tools::filesystem::{SearchResult, WorkspaceSearchTool};
+pub(crate) use crate::tools::terminal::TerminalTool;
 pub use resolver::{Decision, Resolver};
-pub(crate) use terminal::TerminalTool;

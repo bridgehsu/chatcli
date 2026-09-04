@@ -9,7 +9,7 @@ use serde::Deserialize;
 use tracing::{info, warn};
 
 use super::{normalize::NormalizedInput, Intent, IntentCatalog};
-use crate::{agent::AgentKind, infrastructure::config::RouterConfig};
+use crate::{domain::AgentKind, infrastructure::config::RouterConfig};
 
 /// 模型结果的最低可接受置信度，避免模糊推断触发业务动作。
 const MIN_CONFIDENCE: f32 = 0.60;
@@ -42,11 +42,12 @@ pub async fn recognize(
     input: &NormalizedInput,
     router: &RouterConfig,
     catalog: &IntentCatalog,
+    allowed: &[&str],
 ) -> Option<Intent> {
     // 本地模型优先；当前 Demo 未接入本地推理时会返回 None，继续走 LLM。
     recognize_on_device(input)
         .await
-        .or(recognize_llm(input, router, catalog).await)
+        .or(recognize_llm(input, router, catalog, allowed).await)
 }
 
 async fn recognize_on_device(_input: &NormalizedInput) -> Option<Intent> {
@@ -58,6 +59,7 @@ async fn recognize_llm(
     input: &NormalizedInput,
     router: &RouterConfig,
     catalog: &IntentCatalog,
+    allowed: &[&str],
 ) -> Option<Intent> {
     // 未显式启用路由器或没有 API Key 时，绝不发起外部网络请求。
     if !router.enabled || router.api_key.is_empty() {
@@ -80,7 +82,7 @@ async fn recognize_llm(
         "model": router.model,
         "temperature": 0,
         "messages": [
-            {"role":"system", "content": catalog.system_prompt()},
+            {"role":"system", "content": catalog.system_prompt_for(allowed)},
             {"role":"user", "content": input.text}
         ]
     });
@@ -140,14 +142,14 @@ async fn recognize_llm(
         warn!(model = %router.model, "LLM intent response contains no choices");
         return None;
     };
-    let intent = parse_response(&choice.message.content, catalog);
+    let intent = parse_response(&choice.message.content, catalog, allowed);
     if intent.is_none() {
         warn!(model = %router.model, "LLM returned an invalid or low-confidence intent");
     }
     intent
 }
 
-fn parse_response(content: &str, catalog: &IntentCatalog) -> Option<Intent> {
+fn parse_response(content: &str, catalog: &IntentCatalog, allowed: &[&str]) -> Option<Intent> {
     // 兼容部分模型用 Markdown 代码块包裹 JSON 的情况。
     let content = content
         .trim()
@@ -162,6 +164,9 @@ fn parse_response(content: &str, catalog: &IntentCatalog) -> Option<Intent> {
     }
     // 模型只能返回 YAML 中已声明的意图名称。
     catalog.find(&output.intent)?;
+    if !allowed.is_empty() && !allowed.contains(&output.intent.as_str()) {
+        return None;
+    }
     let cli = match output.cli.as_deref() {
         None | Some("null") => None,
         Some("codex") => Some(AgentKind::Codex),
@@ -187,6 +192,7 @@ mod tests {
             parse_response(
                 r#"{"intent":"choose_cli","cli":"codex","confidence":0.9}"#,
                 &catalog(),
+                &[],
             )
             .unwrap()
             .cli,
@@ -198,6 +204,7 @@ mod tests {
         assert!(parse_response(
             r#"{"intent":"close_terminal","confidence":0.2}"#,
             &catalog(),
+            &[],
         )
         .is_none());
     }

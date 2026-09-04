@@ -1,0 +1,6 @@
+---
+description: ChatCLI project-wide architecture and coding rules
+alwaysApply: true
+---
+
+Follow `AGENTS.md` and `docs/` as the single source of truth. Before Rust changes, read `docs/architecture.md` and `docs/coding-standards.md`; read task-specific documents as needed. Run `cargo fmt` and `cargo test` after code changes.

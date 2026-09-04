@@ -2,6 +2,16 @@
 
 ChatCLI 将 Telegram 消息与本机持久化 `tmux` 终端连接起来。它只负责终端展示与输入转发；Codex 与 Cursor 仍在用户自己的 Mac 上真实运行。
 
+## 文档
+
+- [架构](docs/architecture.md)
+- [产品范围](docs/product-requirements.md)
+- [Session 状态机](docs/session-state-machine.md)
+- [Intent 与 Action](docs/intent-and-actions.md)
+- [测试约定](docs/testing.md)
+- [路线图](docs/roadmap.md)
+- [代码规范](docs/coding-standards.md)
+
 ```text
 Telegram
    ↓

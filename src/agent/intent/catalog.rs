@@ -34,9 +34,15 @@ impl IntentCatalog {
     }
 
     pub fn system_prompt(&self) -> String {
+        self.system_prompt_for(&[])
+    }
+
+    /// 为当前识别 Profile 生成受限候选集，避免模型返回状态下不允许的意图。
+    pub fn system_prompt_for(&self, allowed: &[&str]) -> String {
         let intents = self
             .intents
             .iter()
+            .filter(|spec| allowed.is_empty() || allowed.contains(&spec.name.as_str()))
             .map(|spec| {
                 let examples = if spec.examples.is_empty() {
                     "无".to_owned()

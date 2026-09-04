@@ -8,6 +8,7 @@ use crate::{
     agent::intent::IntentCatalog,
     app::{logging, AppState},
     infrastructure::{config::Config, instance::InstanceGuard},
+    interfaces::registry::ChannelRegistry,
 };
 
 /// Application bootstrapper. Equivalent to Spring Boot's application runner:
@@ -37,7 +38,6 @@ impl ChatCliApplication {
 
     pub async fn run(self) -> Result<()> {
         let state = Arc::new(AppState::new(self.config, self.intent_catalog).await?);
-        crate::channels::telegram::start(state).await;
-        Ok(())
+        ChannelRegistry::from_config(&state).start_all(state).await
     }
 }

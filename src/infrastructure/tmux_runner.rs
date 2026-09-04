@@ -4,7 +4,7 @@ use std::process::Stdio;
 use tokio::process::Command;
 use tracing::info;
 
-use crate::agent::AgentKind;
+use crate::domain::AgentKind;
 
 const WINDOW: &str = "agent";
 
@@ -47,9 +47,17 @@ impl CliRunner {
         Ok(())
     }
 
+    /// 创建一个名称固定为 `agent` 的普通 Shell 窗口。
+    ///
+    /// Shell、CodeX、Cursor 共用同一个窗口命名约定，后续 send-keys、capture-pane
+    /// 和 Terminal.app attach 才能稳定定位到同一目标。
+    pub async fn start_shell(&self) -> Result<()> {
+        self.prepare_terminal().await
+    }
+
     pub async fn ensure_tmux_session(&self) -> Result<()> {
         let exists = Command::new("tmux")
-            .args(["has-manager", "-t", &self.tmux_session])
+            .args(["has-session", "-t", &self.tmux_session])
             .stderr(Stdio::null())
             .status()
             .await
@@ -58,7 +66,7 @@ impl CliRunner {
         if !exists {
             Command::new("tmux")
                 .args([
-                    "new-manager",
+                    "new-session",
                     "-d",
                     "-s",
                     &self.tmux_session,
@@ -74,7 +82,7 @@ impl CliRunner {
 
     pub async fn exists(&self) -> bool {
         Command::new("tmux")
-            .args(["has-manager", "-t", &self.tmux_session])
+            .args(["has-session", "-t", &self.tmux_session])
             .stderr(Stdio::null())
             .status()
             .await
@@ -122,22 +130,31 @@ impl CliRunner {
 
     pub async fn send_line(&self, input: &str) -> Result<()> {
         let target = self.target();
-        Command::new("tmux")
+        let status = Command::new("tmux")
             .args(["send-keys", "-t", &target, "-l", input])
             .status()
             .await?;
-        Command::new("tmux")
+        if !status.success() {
+            anyhow::bail!("无法向 tmux 窗口 {target} 发送输入");
+        }
+        let status = Command::new("tmux")
             .args(["send-keys", "-t", &target, "Enter"])
             .status()
             .await?;
+        if !status.success() {
+            anyhow::bail!("无法向 tmux 窗口 {target} 发送回车");
+        }
         Ok(())
     }
 
     pub async fn send_raw_keys(&self, keys: &str) -> Result<()> {
-        Command::new("tmux")
+        let status = Command::new("tmux")
             .args(["send-keys", "-t", &self.target(), keys])
             .status()
             .await?;
+        if !status.success() {
+            anyhow::bail!("无法向 tmux 窗口发送按键");
+        }
         Ok(())
     }
 
@@ -152,7 +169,7 @@ impl CliRunner {
 
     pub async fn kill(&self) -> Result<()> {
         Command::new("tmux")
-            .args(["kill-manager", "-t", &self.tmux_session])
+            .args(["kill-session", "-t", &self.tmux_session])
             .status()
             .await
             .context("关闭 tmux 会话失败")?;
@@ -161,7 +178,8 @@ impl CliRunner {
 
     pub async fn open_local_terminal(&self) -> Result<()> {
         let script = format!(
-            "tell application \"Terminal\"\nactivate\ndo script \"tmux attach -t {}\"\nend tell",
+            "tell application \"Terminal\"\nactivate\nif (count of windows) is 0 then\n    do script \"tmux attach -t {}:agent\"\nelse\n    do script \"tmux attach -t {}:agent\" in front window\nend if\nend tell",
+            self.tmux_session,
             self.tmux_session
         );
         Command::new("osascript")

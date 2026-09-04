@@ -2,10 +2,12 @@ use anyhow::Result;
 
 mod agent;
 mod app;
-mod channels;
+mod domain;
 mod infrastructure;
-mod manager;
-mod utils;
+mod interfaces;
+mod service;
+mod shared;
+mod tools;
 
 use app::ChatCliApplication;
 

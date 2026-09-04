@@ -4,10 +4,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use anyhow::{Context, Result};
 
-use crate::{
-    agent::{intent::IntentCatalog, Agent},
-    infrastructure::config::Config,
-};
+use crate::{agent::intent::IntentCatalog, app::Agent, infrastructure::config::Config};
 
 /// 全局应用状态。各通道只使用它，不负责创建业务服务。
 pub struct AppState {

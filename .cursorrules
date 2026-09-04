@@ -1,0 +1,5 @@
+Follow AGENTS.md and docs/ as the single source of truth.
+
+Before changing Rust code, read docs/architecture.md and docs/coding-standards.md. Read product-requirements, session-state-machine, intent-and-actions, testing, and roadmap when relevant.
+
+Do not duplicate project documentation. Update relevant docs when changing architecture, state transitions, intents, actions, or module boundaries. Run cargo fmt and cargo test after Rust changes.
