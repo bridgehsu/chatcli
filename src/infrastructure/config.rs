@@ -15,6 +15,9 @@ pub struct Config {
 pub struct TelegramConfig {
     pub token: String,
     pub allowed_user_ids: Vec<i64>,
+    /// Optional HTTP proxy, for example `http://127.0.0.1:7890`.
+    #[serde(default)]
+    pub proxy_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -23,7 +26,7 @@ pub struct LogConfig {
     pub level: String,
 }
 
-/// OpenAI-compatible chat model used only for session intent routing.
+/// OpenAI-compatible chat model used only for manager intent routing.
 #[derive(Debug, Deserialize, Clone)]
 pub struct RouterConfig {
     #[serde(default)]
@@ -59,7 +62,7 @@ fn default_model() -> String {
 }
 
 fn default_timeout_secs() -> u64 {
-    15
+    60
 }
 
 impl Config {

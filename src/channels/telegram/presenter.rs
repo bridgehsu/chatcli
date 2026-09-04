@@ -1,67 +1,35 @@
-use crate::agent::intent::commands::*;
 use crate::{
     agent::AgentKind,
-    session::{SessionRecord, SessionState},
+    manager::{Session, SessionRecord, SessionState},
 };
-use teloxide::types::{KeyboardButton, KeyboardMarkup, ReplyMarkup};
+use teloxide::types::{KeyboardRemove, ReplyMarkup};
 
-fn keyboard(rows: Vec<Vec<&str>>) -> ReplyMarkup {
-    ReplyMarkup::Keyboard(
-        KeyboardMarkup::new(
-            rows.into_iter()
-                .map(|row| row.into_iter().map(KeyboardButton::new).collect::<Vec<_>>())
-                .collect::<Vec<_>>(),
-        )
-        .resize_keyboard()
-        .persistent(),
-    )
+/// ChatCLI 所有操作通过聊天消息完成，不展示 Telegram 底部键盘。
+fn remove_keyboard() -> ReplyMarkup {
+    ReplyMarkup::KeyboardRemove(KeyboardRemove::new())
 }
 pub fn initial_keyboard() -> ReplyMarkup {
-    keyboard(vec![vec![CODEX, CURSOR]])
+    remove_keyboard()
 }
 pub fn cli_home_keyboard(kind: AgentKind) -> ReplyMarkup {
-    match kind {
-        AgentKind::Codex => keyboard(vec![vec![NEW_CODEX, LIST_CODEX], vec![RESET]]),
-        AgentKind::Cursor => keyboard(vec![vec![NEW_CURSOR, LIST_CURSOR], vec![RESET]]),
-    }
+    let _ = kind;
+    remove_keyboard()
 }
 pub fn create_keyboard() -> ReplyMarkup {
-    keyboard(vec![vec![CANCEL], vec![RESET]])
+    remove_keyboard()
 }
 pub fn active_keyboard(kind: AgentKind) -> ReplyMarkup {
-    match kind {
-        AgentKind::Codex => keyboard(vec![
-            vec![LIST_CODEX, NEW_CODEX],
-            vec![SCREEN, ATTACH],
-            vec![STOP, CLOSE],
-            vec![RESET],
-        ]),
-        AgentKind::Cursor => keyboard(vec![
-            vec![LIST_CURSOR, NEW_CURSOR],
-            vec![SCREEN, ATTACH],
-            vec![STOP, CLOSE],
-            vec![RESET],
-        ]),
-    }
+    let _ = kind;
+    remove_keyboard()
 }
 pub fn list_keyboard(records: &[SessionRecord]) -> ReplyMarkup {
-    let mut rows = records
-        .iter()
-        .filter(|r| r.status == SessionState::Running)
-        .take(12)
-        .map(|r| vec![format!("/session {}", r.id)])
-        .collect::<Vec<_>>();
-    rows.push(vec![BACK.to_owned()]);
-    rows.push(vec![RESET.to_owned()]);
-    ReplyMarkup::Keyboard(
-        KeyboardMarkup::new(
-            rows.into_iter()
-                .map(|row| row.into_iter().map(KeyboardButton::new).collect::<Vec<_>>())
-                .collect::<Vec<_>>(),
-        )
-        .resize_keyboard()
-        .persistent(),
-    )
+    let _ = records;
+    remove_keyboard()
+}
+/// Agent Session 切换键盘；使用独立前缀，避免与 tmux CLI Session 混淆。
+pub fn agent_session_keyboard(sessions: &[Session]) -> ReplyMarkup {
+    let _ = sessions;
+    remove_keyboard()
 }
 pub fn help_text() -> &'static str {
     "ChatCLI\n\n选择 Codex 或 Cursor 后可新建并管理多个会话。\n当前会话中的普通消息会直接输入 CLI。\n/debug_reset：仅重置机器人 UI，不关闭后台会话。"
@@ -102,7 +70,7 @@ pub fn session_list_text(
         .collect::<Vec<_>>()
         .join("\n\n");
     format!(
-        "{} 所有会话\n\n{}\n\n点击下方 /session 编号切换运行中的会话。",
+        "{} 所有会话\n\n{}\n\n点击下方 /manager 编号切换运行中的会话。",
         kind.display_name(),
         entries
     )

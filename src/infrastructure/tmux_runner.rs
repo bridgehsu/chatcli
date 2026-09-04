@@ -35,7 +35,7 @@ impl CliRunner {
         Ok(())
     }
 
-    /// Start an AI CLI inside the existing real terminal session.
+    /// Start an AI CLI inside the existing real terminal manager.
     pub async fn start_agent(&self, kind: AgentKind) -> Result<()> {
         self.prepare_terminal().await?;
         let command = match kind {
@@ -49,7 +49,7 @@ impl CliRunner {
 
     pub async fn ensure_tmux_session(&self) -> Result<()> {
         let exists = Command::new("tmux")
-            .args(["has-session", "-t", &self.tmux_session])
+            .args(["has-manager", "-t", &self.tmux_session])
             .stderr(Stdio::null())
             .status()
             .await
@@ -58,7 +58,7 @@ impl CliRunner {
         if !exists {
             Command::new("tmux")
                 .args([
-                    "new-session",
+                    "new-manager",
                     "-d",
                     "-s",
                     &self.tmux_session,
@@ -74,7 +74,7 @@ impl CliRunner {
 
     pub async fn exists(&self) -> bool {
         Command::new("tmux")
-            .args(["has-session", "-t", &self.tmux_session])
+            .args(["has-manager", "-t", &self.tmux_session])
             .stderr(Stdio::null())
             .status()
             .await
@@ -152,7 +152,7 @@ impl CliRunner {
 
     pub async fn kill(&self) -> Result<()> {
         Command::new("tmux")
-            .args(["kill-session", "-t", &self.tmux_session])
+            .args(["kill-manager", "-t", &self.tmux_session])
             .status()
             .await
             .context("关闭 tmux 会话失败")?;

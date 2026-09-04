@@ -2,6 +2,8 @@ use crate::agent::AgentKind;
 
 pub const CODEX: &str = "Codex";
 pub const CURSOR: &str = "Cursor";
+pub const INITIAL_NEW_SESSION: &str = "新建会话";
+pub const INITIAL_LIST_SESSION: &str = "会话列表";
 pub const NEW_CODEX: &str = "新建 Codex 会话";
 pub const NEW_CURSOR: &str = "新建 Cursor 会话";
 pub const LIST_CODEX: &str = "Codex 所有会话";
@@ -50,7 +52,7 @@ pub fn parse(text: &str) -> Command {
         LIST_CODEX => Command::List(AgentKind::Codex),
         LIST_CURSOR => Command::List(AgentKind::Cursor),
         _ => text
-            .strip_prefix("/session ")
+            .strip_prefix("/manager ")
             .map(|id| Command::SelectSession(id.trim().to_owned()))
             .unwrap_or_else(|| Command::Text(text.to_owned())),
     }

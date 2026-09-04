@@ -188,7 +188,7 @@ impl TerminalManager {
                 return false;
             }
             // Restored sessions can be interacted with immediately; terminal streaming resumes
-            // when the user opens a fresh session in this process.
+            // when the user opens a fresh manager in this process.
             self.sessions.lock().await.insert(
                 id.to_owned(),
                 TerminalSession {

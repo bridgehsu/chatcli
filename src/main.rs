@@ -4,8 +4,8 @@ mod agent;
 mod app;
 mod channels;
 mod infrastructure;
-mod session;
-mod tools;
+mod manager;
+mod utils;
 
 use app::ChatCliApplication;
 

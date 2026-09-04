@@ -20,7 +20,7 @@ impl AgentKind {
     pub fn display_name(self) -> &'static str {
         match self {
             AgentKind::Cursor => "Cursor",
-            AgentKind::Codex => "Codex",
+            AgentKind::Codex => "CodeX",
         }
     }
 }

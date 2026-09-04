@@ -3,12 +3,14 @@ telegram:
   token: "replace-with-your-bot-token"
   allowed_user_ids:
     - 123456789
+  # Optional HTTP proxy when api.telegram.org is not directly reachable.
+  # proxy_url: "http://127.0.0.1:7890"
 
 log:
   dir: logs
   level: info
 
-# OpenAI-compatible model used only for ambiguous session intent routing.
+# OpenAI-compatible model used only for ambiguous manager intent routing.
 # Deterministic commands and active-terminal forwarding never go through the model.
 # Prefer setting ROUTER_API_KEY in the environment.
 # DeepSeek example:
@@ -19,4 +21,4 @@ router:
   base_url: "https://api.deepseek.com/v1"
   api_key: ""
   model: "deepseek-v4-flash"
-  timeout_secs: 15
+  timeout_secs: 60

@@ -1,107 +1,164 @@
-//! Minimal deterministic intent recognition for the first demo.
+//! 意图识别：将文本转换为配置中的意图名称及少量参数。
 
+mod catalog;
 pub mod commands;
 mod model;
 mod normalize;
 
-use crate::agent::AgentKind;
-use crate::infrastructure::config::RouterConfig;
-use normalize::prepare;
-use serde::Deserialize;
 use std::sync::Arc;
-use strum::{Display, EnumIter, IntoEnumIterator};
+
+use crate::{agent::AgentKind, infrastructure::config::RouterConfig};
+use normalize::prepare;
+
+pub use catalog::IntentCatalog;
+
+/// 已识别的意图。名称来自 `config/intents.yaml`，而非 Rust 枚举。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Intent {
+    pub name: String,
+    pub cli: Option<AgentKind>,
+    pub argument: Option<String>,
+    pub route: IntentRoute,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum IntentKind {
-    ChooseCli(AgentKind),
-    OpenTerminal,
-    SelectWorkspace,
-    ListDirectories,
-    CloseTerminal,
-    Unknown,
+pub enum IntentRoute {
+    Action,
+    WorkspaceInput,
+    CliInput,
 }
 
-/// 模型分类接口使用的无参数意图名称。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Display, EnumIter)]
-#[serde(rename_all = "snake_case")]
-#[strum(serialize_all = "snake_case")]
-pub enum IntentName {
-    ChooseCli,
-    OpenTerminal,
-    SelectWorkspace,
-    ListDirectories,
-    CloseTerminal,
-    Unknown,
+/// Intent 层只需要的最小会话输入模式，避免反向依赖 Agent 的 CurrentSession。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InputMode {
+    Idle,
+    WaitingWorkspace,
+    ActiveCli,
 }
 
-impl IntentName {
-    pub fn classifier_values() -> String {
-        Self::iter()
-            .map(|intent| intent.to_string())
-            .collect::<Vec<_>>()
-            .join("|")
+impl Intent {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            cli: None,
+            argument: None,
+            route: IntentRoute::Action,
+        }
+    }
+
+    pub fn choose_cli(kind: AgentKind) -> Self {
+        Self {
+            name: "choose_cli".to_owned(),
+            cli: Some(kind),
+            argument: None,
+            route: IntentRoute::Action,
+        }
+    }
+
+    pub fn with_cli(mut self, cli: Option<AgentKind>) -> Self {
+        self.cli = cli;
+        self
+    }
+
+    fn workspace_input(input: &str) -> Self {
+        Self {
+            name: "workspace_input".to_owned(),
+            cli: None,
+            argument: Some(input.to_owned()),
+            route: IntentRoute::WorkspaceInput,
+        }
+    }
+
+    fn cli_input(input: &str) -> Self {
+        Self {
+            name: "cli_input".to_owned(),
+            cli: None,
+            argument: Some(input.to_owned()),
+            route: IntentRoute::CliInput,
+        }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Intent {
-    pub kind: IntentKind,
-}
-
-/// 意图识别器在系统启动时创建，并持有模型路由配置。
+/// 精确规则优先；未命中时由模型按 YAML 目录分类。
 pub struct Recognizer {
     router: Arc<RouterConfig>,
+    catalog: Arc<IntentCatalog>,
 }
 
 impl Recognizer {
-    pub fn new(router: Arc<RouterConfig>) -> Self {
-        Self { router }
+    pub fn new(router: Arc<RouterConfig>, catalog: Arc<IntentCatalog>) -> Self {
+        Self { router, catalog }
     }
 
-    /// 统一识别入口：精确规则优先，未命中时才走模型兜底。
-    pub async fn run(&self, input: &str) -> Intent {
+    /// 确定性意图规则。命中后必须优先于会话状态处理，避免控制语句被转发给 CLI。
+    fn rule(&self, input: &str) -> Option<Intent> {
         let input = prepare(input);
-        let kind = match input.lower.as_str() {
-            "打开终端" | "开启终端" | "打开" => Some(IntentKind::OpenTerminal),
-            "关闭终端" | "结束终端" | "关闭" => Some(IntentKind::CloseTerminal),
-            "codex" => Some(IntentKind::ChooseCli(AgentKind::Codex)),
-            "cursor" => Some(IntentKind::ChooseCli(AgentKind::Cursor)),
-            _ => None,
-        };
-        if let Some(kind) = kind {
-            return Intent { kind };
+        if let Some(id) = input.text.strip_prefix("/agent_session ") {
+            let id = id.trim();
+            if !id.is_empty() {
+                return Some(Intent {
+                    name: "switch_agent_session".to_owned(),
+                    cli: None,
+                    argument: Some(id.to_owned()),
+                    route: IntentRoute::Action,
+                });
+            }
         }
-        model::recognize(&input, &self.router)
+        match input.lower.as_str() {
+            "打开终端" | "开启终端" => Some(Intent::new("open_terminal")),
+            "关闭终端" | "结束终端" => Some(Intent::new("close_terminal")),
+            "开发会话" | "新建会话" => Some(Intent::new("new_session")),
+            "关闭会话" | "结束会话" => Some(Intent::new("close_session")),
+            "会话列表" | "获取会话列表" => Some(Intent::new("list_session")),
+            "切换会话" | "切换会话列表" => Some(Intent::new("switch_session")),
+            "自我介绍" | "介绍一下你自己" | "你是谁" | "你能做什么" => {
+                Some(Intent::new("self_introduction"))
+            }
+            "codex" => Some(Intent::choose_cli(AgentKind::Codex)),
+            "cursor" => Some(Intent::choose_cli(AgentKind::Cursor)),
+            "/reset" => Some(Intent::new("reset")),
+            _ => None,
+        }
+    }
+
+    /// 仅对没有命中确定性规则的普通文本调用模型兜底。
+    async fn fallback(&self, input: &str) -> Intent {
+        let input = prepare(input);
+        model::recognize(&input, &self.router, &self.catalog)
             .await
-            .unwrap_or(Intent {
-                kind: IntentKind::Unknown,
-            })
+            .unwrap_or_else(|| Intent::new("unknown"))
+    }
+
+    /// 完整识别入口，便于不需要会话状态编排的调用方直接使用。
+    pub async fn run(&self, input: &str, mode: InputMode) -> Intent {
+        // 如果当前没有开启会话
+
+        // 如果当前开启会话，没有打开对应的cli
+
+        // 如果当前开启了会话，打开对应的cli
+
+        if let Some(intent) = self.rule(input) {
+            return intent;
+        }
+        match mode {
+            InputMode::WaitingWorkspace => Intent::workspace_input(input),
+            InputMode::ActiveCli => Intent::cli_input(input),
+            InputMode::Idle => self.fallback(input).await,
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
     #[tokio::test]
     async fn recognizes_open_terminal() {
-        assert_eq!(
-            Recognizer::new(Arc::new(RouterConfig::default()))
-                .run("打开终端")
-                .await
-                .kind,
-            IntentKind::OpenTerminal
-        );
-    }
-
-    #[tokio::test]
-    async fn keeps_unmatched_text_unknown() {
-        assert_eq!(
-            Recognizer::new(Arc::new(RouterConfig::default()))
-                .run("帮我修复测试")
-                .await
-                .kind,
-            IntentKind::Unknown
-        );
+        let intent = Recognizer::new(
+            Arc::new(RouterConfig::default()),
+            Arc::new(IntentCatalog::default()),
+        )
+        .run("打开终端", InputMode::Idle)
+        .await;
+        assert_eq!(intent.name, "open_terminal");
     }
 }

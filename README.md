@@ -60,6 +60,13 @@ router:
   timeout_secs: 15
 ```
 
+如果本机不能直连 Telegram，可在 `telegram` 下配置 HTTP 代理：
+
+```yaml
+telegram:
+  proxy_url: "http://127.0.0.1:7890"
+```
+
 `router` 默认关闭。启用后需提供 API Key（`router.api_key` 或 `ROUTER_API_KEY`）；`base_url` 可为任意 OpenAI Chat Completions 兼容端点。
 
 ## 打包流程
