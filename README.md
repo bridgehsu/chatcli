@@ -1,42 +1,37 @@
 # ChatCLI
 
-ChatCLI 将 Telegram 消息与本机持久化 `tmux` 终端连接起来。它只负责终端展示与输入转发；Codex 与 Cursor 仍在用户自己的 Mac 上真实运行。
+ChatCLI 把聊天消息接到本机持久化 `tmux`。它只做展示与输入转发；Codex / Cursor 仍在你自己的 Mac 上真实运行。
 
-## 文档
-
-- [架构](docs/architecture.md)
-- [产品范围](docs/product-requirements.md)
-- [Session 状态机](docs/session-state-machine.md)
-- [Intent 与 Action](docs/intent-and-actions.md)
-- [测试约定](docs/testing.md)
-- [路线图](docs/roadmap.md)
-- [代码规范](docs/coding-standards.md)
-
-```text
-Telegram
-   ↓
-ChatCLI
-   ↓
-tmux
-   ↓
-Codex / Cursor
+```mermaid
+flowchart LR
+  Telegram --> ChatCLI --> tmux --> CLI[Codex / Cursor / Shell]
 ```
 
-消息会先经过 `Agent`：确定性命令与会话状态（有活动终端、等待工作目录）优先按规则处理；无活动终端时的自然语言，可在启用 `router` 后由 OpenAI 兼容模型做意图分类（如启动 CLI 引导 vs 文件定位）。模型失败时回退到关键词启发式。`Agent` 不直接执行 shell 命令，也不会编造目录或文件位置；所有终端和文件系统操作仍须由对应本地模块验证后执行。
+完整文档见 **[docs/](docs/README.md)**。
 
-## Agent 与 Tool 分层
+| 快速入口 | |
+|---|---|
+| [架构](docs/design/architecture.md) | [产品范围](docs/product.md) |
+| [主交互流程](docs/design/interaction.md) | [状态机](docs/design/sessions.md) |
+| [Intent / Action](docs/design/intents.md) | [代码规范](docs/engineering/standards.md) |
+| [测试](docs/engineering/testing.md) | [路线图](docs/roadmap.md) |
 
-`Agent` 只产生受限决策；真实本机能力集中在 `src/tools/`：
+协作、分支、提交与 Pull Request 约定见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-```text
-Agent
-  ├─ WorkspaceSearchTool：查找目录、校验路径、定位文件
-  └─ TerminalTool：启动 CLI、输入、抓屏、按键注入、本机接管
-```
+消息先经 `Agent`：确定性命令与会话状态优先按规则处理；歧义自然语言可走 `router` 模型意图分类，失败则回退启发式。`Agent` 不直接执行 shell，也不编造路径；终端与文件系统结果一律来自本机模块。
 
-例如用户在选择 Codex 后发送“打开 chatcli 这个目录”，`WorkspaceSearchTool` 会在本机 Home 范围内搜索同名目录：唯一结果直接用于创建 tmux；多个结果返回编号候选，用户回复序号后再启动；没有结果则提示用户重新输入路径或目录名。目录与文件结果均来自真实文件系统，不由模型编造。
+## Agent 与 Tool
 
-一期仅支持 macOS、Telegram、Codex CLI 和 Cursor CLI。每个聊天可保留多个 tmux 会话，但任意时刻只有一个“当前会话”；启动 CLI 时先选择工作目录，该目录不要求是 Git 仓库。
+`Agent` 只产出受限决策；本机能力在 `src/tools/`：
+
+| Tool | 能力 |
+|---|---|
+| `WorkspaceSearchTool` | 查目录、校验路径、定位文件 |
+| `TerminalTool` | 启动 CLI、输入、抓屏、按键、本机接管 |
+
+例如选 Codex 后发「打开 chatcli 这个目录」：唯一命中直接建 tmux；多个命中给编号候选；无结果提示重输。路径来自真实文件系统。
+
+一期：macOS · Telegram · Codex · Cursor。每个聊天可有多个 tmux，但任意时刻只有一个当前会话；启动前先选工作目录（不必是 Git 仓库）。
 
 ## 运行前提
 
