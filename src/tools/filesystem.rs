@@ -41,14 +41,6 @@ impl WorkspaceSearchTool {
             .map_err(|error| format!("目录搜索任务失败：{error}"))?
     }
 
-    pub async fn find_file(&self, query: &str) -> Result<SearchResult, String> {
-        let query = query.trim().to_owned();
-        let roots = self.roots.clone();
-        tokio::task::spawn_blocking(move || search_files(&roots, &query, 6))
-            .await
-            .map_err(|error| format!("文件搜索任务失败：{error}"))?
-    }
-
     /// 列出 Home 目录下可作为工作区起点的可见目录。
     pub async fn list_directories(&self) -> Result<Vec<PathBuf>, String> {
         let home = self.home.clone();
@@ -117,9 +109,6 @@ fn search_directories(
     max_depth: usize,
 ) -> Result<SearchResult, String> {
     Ok(to_result(search(roots, query, max_depth, true)))
-}
-fn search_files(roots: &[PathBuf], query: &str, max_depth: usize) -> Result<SearchResult, String> {
-    Ok(to_result(search(roots, query, max_depth, false)))
 }
 fn to_result(mut matches: Vec<PathBuf>) -> SearchResult {
     matches.sort();

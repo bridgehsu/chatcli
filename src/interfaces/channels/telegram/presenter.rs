@@ -26,9 +26,6 @@ pub fn list_keyboard(records: &[SessionRecord]) -> ReplyMarkup {
     let _ = records;
     remove_keyboard()
 }
-pub fn help_text() -> &'static str {
-    "ChatCLI\n\n选择 CodeX 或 Cursor 后可新建并管理多个会话。\nShell 中的自然语言会先生成命令，确认后才执行；以 $ 或 ! 开头可直接发送 Shell 命令。\n/reset：清空当前聊天的 Agent 会话、上下文和受管理终端。"
-}
 pub fn session_list_text(records: &[SessionRecord], current: Option<&str>) -> String {
     if records.is_empty() {
         return "当前 Agent 会话还没有终端。".to_owned();

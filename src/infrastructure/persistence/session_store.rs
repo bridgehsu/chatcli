@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fs,
-    path::PathBuf,
+    path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::Mutex;
@@ -26,7 +26,7 @@ pub struct SessionStore {
 }
 
 impl SessionStore {
-    pub fn new(home: &PathBuf) -> Self {
+    pub fn new(home: &Path) -> Self {
         let state_file = home.join(".chatcli").join("agent-sessions.json");
         let sessions = fs::read_to_string(&state_file)
             .ok()

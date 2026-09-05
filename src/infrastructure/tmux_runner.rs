@@ -147,17 +147,6 @@ impl CliRunner {
         Ok(())
     }
 
-    pub async fn send_raw_keys(&self, keys: &str) -> Result<()> {
-        let status = Command::new("tmux")
-            .args(["send-keys", "-t", &self.target(), keys])
-            .status()
-            .await?;
-        if !status.success() {
-            anyhow::bail!("无法向 tmux 窗口发送按键");
-        }
-        Ok(())
-    }
-
     pub async fn capture_pane_public(&self) -> Result<String> {
         let output = Command::new("tmux")
             .args(["capture-pane", "-t", &self.target(), "-p", "-S", "-200"])

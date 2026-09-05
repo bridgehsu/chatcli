@@ -3,7 +3,7 @@
 use crate::domain::ContextEvent;
 use std::{
     fs,
-    path::PathBuf,
+    path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -12,7 +12,7 @@ pub struct ContextStore {
 }
 
 impl ContextStore {
-    pub fn new(home: &PathBuf) -> Self {
+    pub fn new(home: &Path) -> Self {
         Self {
             history_file: home.join(".chatcli").join("agent-messages.jsonl"),
         }

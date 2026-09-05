@@ -8,10 +8,7 @@ mod profile;
 use std::sync::Arc;
 
 use crate::{
-    agent::AgentKind,
-    app::agent_runtime::{CurrentSession, TerminalState},
-    domain::AgentSessionState,
-    infrastructure::config::RouterConfig,
+    agent::AgentKind, app::agent_runtime::CurrentSession, infrastructure::config::RouterConfig,
 };
 use normalize::prepare;
 
@@ -250,6 +247,7 @@ impl Recognizer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{app::agent_runtime::TerminalState, domain::AgentSessionState};
     #[tokio::test]
     async fn recognizes_open_terminal() {
         let intent = Recognizer::new(

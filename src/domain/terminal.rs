@@ -11,14 +11,6 @@ pub enum TerminalKind {
 }
 
 impl TerminalKind {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Shell => "shell",
-            Self::Codex => "codex",
-            Self::Cursor => "cursor",
-        }
-    }
-
     pub fn display_name(self) -> &'static str {
         match self {
             Self::Shell => "终端",

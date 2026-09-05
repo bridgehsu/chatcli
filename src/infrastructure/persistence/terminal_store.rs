@@ -19,6 +19,16 @@ struct TerminalSession {
     watcher: JoinHandle<()>,
 }
 
+pub struct TerminalCreation {
+    pub chat_id: i64,
+    pub agent_session_id: String,
+    pub id: String,
+    pub runner: Arc<CliRunner>,
+    pub kind: TerminalKind,
+    pub stop: tokio::sync::oneshot::Sender<()>,
+    pub watcher: JoinHandle<()>,
+}
+
 #[derive(Clone)]
 pub struct TerminalStatus {
     pub id: String,
@@ -160,9 +170,7 @@ impl TerminalManager {
                 runner: Arc::clone(&session.runner),
                 kind: session.kind,
             });
-        let Some(status) = status else {
-            return None;
-        };
+        let status = status?;
         if status.runner.exists().await {
             Some(status)
         } else {
@@ -172,16 +180,16 @@ impl TerminalManager {
         }
     }
 
-    pub async fn create(
-        &self,
-        chat_id: i64,
-        agent_session_id: String,
-        id: String,
-        runner: Arc<CliRunner>,
-        kind: TerminalKind,
-        stop: tokio::sync::oneshot::Sender<()>,
-        watcher: JoinHandle<()>,
-    ) {
+    pub async fn create(&self, creation: TerminalCreation) {
+        let TerminalCreation {
+            chat_id,
+            agent_session_id,
+            id,
+            runner,
+            kind,
+            stop,
+            watcher,
+        } = creation;
         let record = SessionRecord {
             id: id.clone(),
             chat_id,

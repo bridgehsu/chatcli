@@ -7,24 +7,11 @@ pub(crate) struct NormalizedInput {
     pub text: String,
     /// 小写副本（ASCII 关键词匹配用）
     pub lower: String,
-
-    pub char_count: usize,
 }
 
-impl NormalizedInput {
-    pub fn is_empty(&self) -> bool {
-        self.text.is_empty()
-    }
-}
-
-/// trim + 小写副本 + 字数；不做意图判定。
+/// trim + 小写副本；不做意图判定。
 pub fn prepare(input: &str) -> NormalizedInput {
     let text = input.trim().to_string();
     let lower = text.to_lowercase();
-    let char_count = text.chars().count();
-    NormalizedInput {
-        text,
-        lower,
-        char_count,
-    }
+    NormalizedInput { text, lower }
 }

@@ -21,14 +21,6 @@ impl TerminalTool {
         terminal.send_line(input).await
     }
 
-    pub async fn send_keys(&self, terminal: &CliRunner, keys: &str) -> Result<()> {
-        terminal.send_raw_keys(keys).await
-    }
-
-    pub async fn capture_screen(&self, terminal: &CliRunner) -> Result<String> {
-        terminal.capture_pane_public().await
-    }
-
     pub async fn attach_local(&self, terminal: &CliRunner) -> Result<()> {
         terminal.open_local_terminal().await
     }

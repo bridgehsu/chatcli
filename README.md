@@ -58,7 +58,7 @@ telegram:
     - 你的 Telegram 用户 ID
 
 router:
-  enabled: true
+  enabled: false
   base_url: "https://api.openai.com/v1"
   api_key: ""   # 或设置环境变量 ROUTER_API_KEY
   model: "gpt-4o-mini"
@@ -72,7 +72,7 @@ telegram:
   proxy_url: "http://127.0.0.1:7890"
 ```
 
-`router` 默认关闭。启用后需提供 API Key（`router.api_key` 或 `ROUTER_API_KEY`）；`base_url` 可为任意 OpenAI Chat Completions 兼容端点。
+`router` 默认关闭。启用前必须提供 API Key（`router.api_key` 或 `ROUTER_API_KEY`）；`base_url` 可为任意 OpenAI Chat Completions 兼容端点。Codex 启动、终端输入和确定性命令不依赖 router。
 
 ## 打包流程
 
@@ -154,24 +154,17 @@ logs/launchd.err.log
 
 ## Telegram 使用方式
 
-```text
-[Codex] [Cursor]
-→ 进入对应 CLI 的会话中心
-→ 选择“新建会话”并发送工作目录
-→ ChatCLI 在该目录创建独立 tmux 并启动 CLI
-→ 新会话自动成为当前会话
-```
-
-Codex 与 Cursor 分别提供“新建会话”和“所有会话”入口；列表只显示同类 CLI 会话。选择列表中的运行中会话会切换当前会话，旧会话继续在后台运行。普通 Telegram 文本始终输入当前会话。
-
-常用操作：
+手机上的最短闭环：
 
 ```text
-/screen  查看当前终端画面
-/attach  在本机 Mac Terminal 接入同一 tmux 会话
-/stop    发送 Ctrl+C
-/close   结束当前会话
-/debug_reset  仅重置机器人 UI；不会关闭后台会话
+/reset
+→ CodeX
+→ 发送工作目录的绝对路径，例如 /Users/xukui/demo-workspace/chatcli
+→ 收到“已启动 CodeX 会话”后，发送你的编码任务
 ```
+
+普通文本会转发到当前 CodeX / Cursor 终端；终端输出会同步更新到 Telegram。可发送 `终端列表` 查看终端，发送 `/terminal <终端ID>` 切换当前终端，发送 `关闭终端` 结束当前终端。Shell 默认采用候选命令确认；以 `$` 或 `!` 开头可直接输入 Shell 命令。
+
+同一个 Telegram Bot 同时只能由一个 `getUpdates` 轮询进程消费消息。若日志出现 `TerminatedByOtherGetUpdates`，请停止另一台机器、旧的前台进程或其他部署中的同一个 Bot。
 
 会话元数据保存到 `~/.chatcli/sessions.json`。ChatCLI 重启时会检查 tmux 是否仍存在，恢复可用会话；已不存在的 tmux 会话会显示为已失效。

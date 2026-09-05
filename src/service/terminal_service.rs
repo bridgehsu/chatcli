@@ -1,17 +1,16 @@
 //! Terminal Session 的操作：创建、切换、转发、查看和关闭 tmux 终端。
 
 use crate::{
-    agent::TerminalKind, app::Agent, infrastructure::CliRunner,
+    agent::TerminalKind,
+    app::Agent,
+    infrastructure::{CliRunner, TerminalCreation},
     interfaces::channels::telegram::presenter,
 };
 use std::{
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
-use teloxide::{
-    prelude::*,
-    types::{ChatId, ParseMode},
-};
+use teloxide::{prelude::*, types::ChatId};
 use tracing::{error, info};
 
 /// 展示当前 Agent Session 下的所有 Terminal Session。
@@ -62,15 +61,15 @@ pub async fn open_shell(bot: &Bot, chat: ChatId, state: &Arc<Agent>) {
     );
     state
         .terminals
-        .create(
-            chat.0,
+        .create(TerminalCreation {
+            chat_id: chat.0,
             agent_session_id,
             id,
-            Arc::clone(&runner),
-            TerminalKind::Shell,
+            runner: Arc::clone(&runner),
+            kind: TerminalKind::Shell,
             stop,
             watcher,
-        )
+        })
         .await;
     state.persist_agent_session(chat).await;
 
@@ -145,48 +144,5 @@ pub async fn close(bot: &Bot, chat: ChatId, state: &Arc<Agent>) {
         let _ = bot.send_message(chat, "当前终端已结束。").await;
     } else {
         let _ = bot.send_message(chat, "当前没有选中的终端。").await;
-    }
-}
-
-pub async fn attach(bot: &Bot, chat: ChatId, state: &Arc<Agent>) {
-    let agent_session_id = state.current_session_id(chat).await;
-    let Some(active) = state.terminals.active(&agent_session_id).await else {
-        let _ = bot.send_message(chat, "当前没有选中的终端。").await;
-        return;
-    };
-    let message = match state.terminal.attach_local(&active.runner).await {
-        Ok(()) => "已在 Mac Terminal 中接入当前 tmux 终端。".into(),
-        Err(error) => format!("打开本机终端失败：{error}"),
-    };
-    let _ = bot.send_message(chat, message).await;
-}
-
-pub async fn screen(bot: &Bot, chat: ChatId, state: &Arc<Agent>) {
-    let agent_session_id = state.current_session_id(chat).await;
-    let Some(active) = state.terminals.active(&agent_session_id).await else {
-        let _ = bot.send_message(chat, "当前没有选中的终端。").await;
-        return;
-    };
-    match state.terminal.capture_screen(&active.runner).await {
-        Ok(view) => {
-            let _ = bot
-                .send_message(
-                    chat,
-                    format!(
-                        "<pre>{}</pre>",
-                        presenter::html_escape(&presenter::tail_chars(
-                            &presenter::strip_ansi(&view),
-                            3500
-                        ))
-                    ),
-                )
-                .parse_mode(ParseMode::Html)
-                .await;
-        }
-        Err(error) => {
-            let _ = bot
-                .send_message(chat, format!("读取终端失败：{error}"))
-                .await;
-        }
     }
 }

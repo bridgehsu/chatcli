@@ -1,7 +1,7 @@
 use crate::{
     app::Agent,
     domain::{AgentKind, PendingLaunch},
-    infrastructure::CliRunner,
+    infrastructure::{CliRunner, TerminalCreation},
     interfaces::channels::telegram::{presenter, terminal_view},
 };
 use std::{
@@ -28,15 +28,6 @@ pub async fn initial(bot: &Bot, chat: ChatId, state: &Arc<Agent>, message: &str)
             error!(chat_id = chat.0, %error, "Failed to render Telegram initial keyboard")
         }
     }
-}
-
-pub async fn home(bot: &Bot, chat: ChatId, state: &Arc<Agent>, kind: AgentKind) {
-    state.select_cli(chat, kind).await;
-    state.persist_agent_session(chat).await;
-    let _ = bot
-        .send_message(chat, format!("{} 会话中心", kind.display_name()))
-        .reply_markup(presenter::cli_home_keyboard(kind))
-        .await;
 }
 
 pub async fn begin(bot: &Bot, chat: ChatId, state: &Arc<Agent>, kind: AgentKind) {
@@ -96,15 +87,15 @@ pub async fn open(bot: &Bot, chat: ChatId, state: Arc<Agent>, kind: AgentKind, w
     let (stop, watcher) = terminal_view::spawn(bot.clone(), chat, Arc::clone(&runner));
     state
         .terminals
-        .create(
-            chat.0,
-            state.current_session_id(chat).await,
+        .create(TerminalCreation {
+            chat_id: chat.0,
+            agent_session_id: state.current_session_id(chat).await,
             id,
             runner,
-            kind.into(),
+            kind: kind.into(),
             stop,
             watcher,
-        )
+        })
         .await;
     state.persist_agent_session(chat).await;
     let _ = bot.send_message(chat, format!("已启动 {} 会话，目录：<code>{}</code>。\n它已设为当前会话；现在发送的普通消息会输入该 CLI。", kind.display_name(), presenter::html_escape(&workspace.display().to_string()))).parse_mode(ParseMode::Html).reply_markup(presenter::active_keyboard(kind)).await;
